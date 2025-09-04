@@ -20,27 +20,31 @@
 <body>
   <h1>⏰ นาฬิกาปลุกด้วย QR</h1>
 
-  <div class="time-display" id="currentTime">00:00:00</div>
+  <button onclick="initApp()">▶ เริ่มเว็บ</button>
 
-  <div class="controls">
-    <input type="time" id="alarmTime">
-    <button onclick="setAlarm()">ตั้งนาฬิกา</button>
-    <button onclick="startRegisterQR()">📷 ลงทะเบียน QR</button>
-  </div>
+  <div id="mainContent" style="display:none;">
+    <div class="time-display" id="currentTime">00:00:00</div>
 
-  <div id="progress"><div id="progress-bar"></div></div>
-  <p id="status">ยังไม่ได้ตั้งเวลา</p>
+    <div class="controls">
+      <input type="time" id="alarmTime">
+      <button onclick="setAlarm()">ตั้งนาฬิกา</button>
+      <button onclick="startRegisterQR()">📷 ลงทะเบียน QR</button>
+    </div>
 
-  <!-- สำหรับสแกน QR ปลุก -->
-  <div id="task">
-    <h3>📷 สแกน QR Code เพื่อปิดเสียง</h3>
-    <div id="reader"></div>
-  </div>
+    <div id="progress"><div id="progress-bar"></div></div>
+    <p id="status">ยังไม่ได้ตั้งเวลา</p>
 
-  <!-- สำหรับลงทะเบียน QR -->
-  <div id="registerQR">
-    <h3>📷 สแกน QR Code เพื่อสมัคร</h3>
-    <div id="reader-register"></div>
+    <!-- สำหรับสแกน QR ปลุก -->
+    <div id="task">
+      <h3>📷 สแกน QR Code เพื่อปิดเสียง</h3>
+      <div id="reader"></div>
+    </div>
+
+    <!-- สำหรับลงทะเบียน QR -->
+    <div id="registerQR">
+      <h3>📷 สแกน QR Code เพื่อสมัคร</h3>
+      <div id="reader-register"></div>
+    </div>
   </div>
 
   <audio id="alarmSound" loop>
@@ -53,6 +57,21 @@
     let savedQR = null;
     let html5QrCode = null;
 
+    // ฟังก์ชันเริ่มเว็บ (ให้ browser ยอมเล่นเสียง)
+    function initApp() {
+      const audio = document.getElementById("alarmSound");
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        document.getElementById("mainContent").style.display = "block";
+        alert("เว็บพร้อมใช้งานแล้ว!");
+      }).catch(err => {
+        alert("เกิดข้อผิดพลาด: " + err);
+      });
+      event.target.style.display = "none"; // ซ่อนปุ่มเริ่มเว็บ
+      setInterval(updateTime, 1000);
+    }
+
     // อัปเดตเวลา
     function updateTime() {
       const now = new Date();
@@ -60,7 +79,6 @@
         now.toLocaleTimeString('th-TH', { hour12:false });
       if (alarmTime) updateProgress(now);
     }
-    setInterval(updateTime, 1000);
 
     // ตั้งนาฬิกา
     function setAlarm() {
@@ -103,7 +121,8 @@
 
     // เริ่มปลุก
     function startAlarm() {
-      document.getElementById("alarmSound").play();
+      const audio = document.getElementById("alarmSound");
+      audio.play();
       document.getElementById("status").innerText = "⏰ ถึงเวลาแล้ว! ไปสแกน QR เพื่อปิดเสียง";
       document.getElementById("task").style.display = "block";
 
@@ -119,8 +138,9 @@
 
     // ปิดเสียง
     function stopAlarm() {
-      document.getElementById("alarmSound").pause();
-      document.getElementById("alarmSound").currentTime = 0;
+      const audio = document.getElementById("alarmSound");
+      audio.pause();
+      audio.currentTime = 0;
       document.getElementById("status").innerText = "✅ ปิดเสียงเรียบร้อย";
       document.getElementById("task").style.display = "none";
       if (html5QrCode) html5QrCode.stop();
