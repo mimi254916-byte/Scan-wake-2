@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>⏰ นาฬิกาปลุกด้วย QR</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { background:#000; color:#fff; font-family:sans-serif; text-align:center; padding:20px; }
+    h1 { font-size:2em; margin-bottom:20px; }
+    .time-display { font-size:4em; margin:20px 0; }
+    .controls { margin:15px; }
+    .controls input, .controls button { font-size:1.2em; padding:10px; margin:5px; }
+    #progress { width:100%; height:20px; background:#333; margin:20px 0; border-radius:10px; overflow:hidden; }
+    #progress-bar { width:0; height:100%; background:#4caf50; transition:width 0.5s; }
+    #task { margin-top:20px; }
+    #reader { width:300px; margin:auto; }
+    audio { display:none; }
+  </style>
+</head>
+<body>
+  <h1>⏰ นาฬิกาปลุกด้วย QR</h1>
+
+  <div class="time-display" id="currentTime">00:00:00</div>
+
+  <div class="controls">
+    <input type="time" id="alarmTime">
+    <button onclick="setAlarm()">ตั้งนาฬิกา</button>
+    <button onclick="registerQR()">📷 ลงทะเบียน QR</button>
+  </div>
+
+  <div id="progress"><div id="progress-bar"></div></div>
+  <p id="status">ยังไม่ได้ตั้งเวลา</p>
+  <div id="task" style="display:none;">
+    <h3>📷 สแกน QR Code เพื่อปิดเสียง</h3>
+    <div id="reader"></div>
+  </div>
+
+  <audio id="alarmSound" loop>
+    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    let alarmTime = null;
+    let alarmTimeout = null;
+    let savedQR = null;
+    let html5QrCode = null;
+
+    // อัปเดตเวลา
+    function updateTime() {
+      const now = new Date();
+      document.getElementById("currentTime").innerText =
+        now.toLocaleTimeString('th-TH', { hour12:false });
+      if (alarmTime) updateProgress(now);
+    }
+    setInterval(updateTime, 1000);
+
+    // ตั้งนาฬิกา
+    function setAlarm() {
+      const input = document.getElementById("alarmTime").value;
+      if (!input) { alert("กรุณาเลือกเวลา"); return; }
+      alarmTime = input;
+      document.getElementById("status").innerText = "ตั้งปลุกเวลา: " + alarmTime;
+    }
+
+    // ลงทะเบียน QR
+    function registerQR() {
+      const qr = prompt("สแกน QR ด้วยมือถือแล้วคัดลอกข้อความมาใส่ที่นี่:");
+      if (qr) {
+        savedQR = qr;
+        alert("✅ ลงทะเบียน QR สำเร็จ!");
+      }
+    }
+
+    // Progress bar
+    function updateProgress(now) {
+      const [h, m] = alarmTime.split(":").map(Number);
+      const alarmDate = new Date();
+      alarmDate.setHours(h, m, 0, 0);
+      const diff = alarmDate - now;
+      const total = 60 * 60 * 1000; // 1 ชั่วโมงเป็นฐาน
+      let percent = Math.max(0, 100 - (diff/total*100));
+      if (percent > 100) percent = 100;
+      document.getElementById("progress-bar").style.width = percent + "%";
+
+      if (diff <= 0 && !alarmTimeout) startAlarm();
+    }
+
+    // เริ่มปลุก
+    function startAlarm() {
+      document.getElementById("alarmSound").play();
+      document.getElementById("status").innerText = "⏰ ถึงเวลาแล้ว! ไปสแกน QR เพื่อปิดเสียง";
+      document.getElementById("task").style.display = "block";
+
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          if (decodedText === savedQR) stopAlarm();
+        }
+      );
+    }
+
+    // ปิดเสียง
+    function stopAlarm() {
+      document.getElementById("alarmSound").pause();
+      document.getElementById("alarmSound").currentTime = 0;
+      document.getElementById("status").innerText = "✅ ปิดเสียงเรียบร้อย";
+      document.getElementById("task").style.display = "none";
+      if (html5QrCode) html5QrCode.stop();
+      alarmTime = null;
+      alarmTimeout = null;
+    }
+  </script>
+</body>
+</html>
