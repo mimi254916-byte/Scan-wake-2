@@ -12,8 +12,8 @@
     .controls input, .controls button { font-size:1.2em; padding:10px; margin:5px; }
     #progress { width:100%; height:20px; background:#333; margin:20px 0; border-radius:10px; overflow:hidden; }
     #progress-bar { width:0; height:100%; background:#4caf50; transition:width 0.5s; }
-    #task { margin-top:20px; }
-    #reader { width:300px; margin:auto; }
+    #task, #registerQR { display:none; margin-top:20px; }
+    #reader, #reader-register { width:300px; margin:auto; }
     audio { display:none; }
   </style>
 </head>
@@ -25,14 +25,22 @@
   <div class="controls">
     <input type="time" id="alarmTime">
     <button onclick="setAlarm()">ตั้งนาฬิกา</button>
-    <button onclick="registerQR()">📷 ลงทะเบียน QR</button>
+    <button onclick="startRegisterQR()">📷 ลงทะเบียน QR</button>
   </div>
 
   <div id="progress"><div id="progress-bar"></div></div>
   <p id="status">ยังไม่ได้ตั้งเวลา</p>
-  <div id="task" style="display:none;">
+
+  <!-- สำหรับสแกน QR ปลุก -->
+  <div id="task">
     <h3>📷 สแกน QR Code เพื่อปิดเสียง</h3>
     <div id="reader"></div>
+  </div>
+
+  <!-- สำหรับลงทะเบียน QR -->
+  <div id="registerQR">
+    <h3>📷 สแกน QR Code เพื่อสมัคร</h3>
+    <div id="reader-register"></div>
   </div>
 
   <audio id="alarmSound" loop>
@@ -58,17 +66,25 @@
     function setAlarm() {
       const input = document.getElementById("alarmTime").value;
       if (!input) { alert("กรุณาเลือกเวลา"); return; }
+      if (!savedQR) { alert("กรุณาลงทะเบียน QR ก่อนตั้งปลุก"); return; }
       alarmTime = input;
       document.getElementById("status").innerText = "ตั้งปลุกเวลา: " + alarmTime;
     }
 
-    // ลงทะเบียน QR
-    function registerQR() {
-      const qr = prompt("สแกน QR ด้วยมือถือแล้วคัดลอกข้อความมาใส่ที่นี่:");
-      if (qr) {
-        savedQR = qr;
-        alert("✅ ลงทะเบียน QR สำเร็จ!");
-      }
+    // เริ่มลงทะเบียน QR
+    function startRegisterQR() {
+      document.getElementById("registerQR").style.display = "block";
+      html5QrCode = new Html5Qrcode("reader-register");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          savedQR = decodedText;
+          alert("✅ ลงทะเบียน QR สำเร็จ!");
+          html5QrCode.stop();
+          document.getElementById("registerQR").style.display = "none";
+        }
+      );
     }
 
     // Progress bar
